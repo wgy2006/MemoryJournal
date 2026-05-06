@@ -142,7 +142,7 @@ struct MoodPill: View {
     var body: some View {
         let mood = MoodOption(rawValue: moodRaw) ?? .calm
 
-        Label(L10n.t(mood.l10nKey, language), systemImage: mood.iconName)
+        Text(mood.displayName(language: language))
             .font(.caption)
             .foregroundStyle(AppTheme.textSecondary)
     }

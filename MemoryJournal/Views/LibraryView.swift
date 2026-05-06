@@ -54,7 +54,7 @@ struct LibraryView: View {
 
                                 ForEach(MoodOption.allCases) { mood in
                                     CompactInfoRow(
-                                        title: L10n.t(mood.l10nKey, language),
+                                        title: mood.displayName(language: language),
                                         value: "\(entries.filter { $0.mood == mood.rawValue }.count)",
                                         systemImage: mood.iconName
                                     )

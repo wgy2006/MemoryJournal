@@ -53,10 +53,11 @@ struct SearchView: View {
                                 Picker(L10n.t(.mood, language), selection: $selectedMood) {
                                     Text(L10n.t(.allMoods, language)).tag("all")
                                     ForEach(MoodOption.allCases) { mood in
-                                        Text(L10n.t(mood.l10nKey, language)).tag(mood.rawValue)
+                                        Text(mood.displayName(language: language)).tag(mood.rawValue)
                                     }
                                 }
-                                .pickerStyle(.segmented)
+                                .pickerStyle(.menu)
+                                .tint(AppTheme.teal)
                             }
                         }
 

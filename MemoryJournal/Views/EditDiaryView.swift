@@ -60,7 +60,7 @@ struct EditDiaryView: View {
 
                                     Picker(L10n.t(.mood, language), selection: $entry.mood) {
                                         ForEach(MoodOption.allCases) { mood in
-                                            Text(L10n.t(mood.l10nKey, language))
+                                            Text(mood.displayName(language: language))
                                                 .tag(mood.rawValue)
                                         }
                                     }

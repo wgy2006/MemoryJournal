@@ -45,8 +45,9 @@ struct MemoriesView: View {
                             language: language
                         )
                     }
-                    .padding(24)
-                    .frame(maxWidth: 1180)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 20)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .navigationTitle(L10n.t(.memories, language))
@@ -55,51 +56,69 @@ struct MemoriesView: View {
 }
 
 struct StarryMemoryHero: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     let language: AppLanguage
 
+    private var isCompact: Bool {
+        horizontalSizeClass == .compact
+    }
+
+    private var heroHeight: CGFloat {
+        isCompact ? 230 : 280
+    }
+
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            Image("MemoriesHero")
-                .resizable()
-                .scaledToFill()
+        GeometryReader { proxy in
+            ZStack(alignment: .bottomLeading) {
+                Image("MemoriesHero")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: proxy.size.width, height: heroHeight)
+                    .clipped()
 
-            LinearGradient(
-                colors: [
-                    .black.opacity(0.55),
-                    .black.opacity(0.18),
-                    .black.opacity(0.62)
-                ],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
+                LinearGradient(
+                    colors: [
+                        .black.opacity(isCompact ? 0.72 : 0.55),
+                        .black.opacity(0.24),
+                        .black.opacity(isCompact ? 0.68 : 0.62)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
 
-            LinearGradient(
-                colors: [
-                    .black.opacity(0.05),
-                    .black.opacity(0.46)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+                LinearGradient(
+                    colors: [
+                        .black.opacity(0.06),
+                        .black.opacity(0.50)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
 
-            VStack(alignment: .leading, spacing: 12) {
-                Text(L10n.t(.memoriesHeroTitle, language))
-                    .font(.system(size: 58, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                VStack(alignment: .leading, spacing: isCompact ? 8 : 12) {
+                    Text(L10n.t(.memoriesHeroTitle, language))
+                        .font(.system(size: isCompact ? 42 : 58, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
 
-                Text(L10n.t(.memoriesHeroSubtitle, language))
-                    .font(.title3.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.78))
-                    .lineLimit(2)
+                    Text(L10n.t(.memoriesHeroSubtitle, language))
+                        .font(isCompact ? .subheadline.weight(.semibold) : .title3.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.80))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: max(proxy.size.width - (isCompact ? 44 : 68), 120), alignment: .leading)
+                }
+                .padding(isCompact ? 22 : 34)
             }
-            .padding(34)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.white.opacity(0.10))
+            )
         }
-        .frame(height: 280)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.white.opacity(0.10))
-        )
+        .frame(height: heroHeight)
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -122,7 +141,7 @@ struct MemorySection: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 280), spacing: 14)], spacing: 14) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 14)], spacing: 14) {
                     ForEach(entries) { entry in
                         NavigationLink {
                             DiaryDetailView(entry: entry, language: language)

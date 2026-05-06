@@ -54,6 +54,18 @@ enum L10nKey {
     case tired
     case sad
     case grateful
+    case excited
+    case relaxed
+    case anxious
+    case angry
+    case bored
+    case focused
+    case inspired
+    case lonely
+    case sick
+    case sleepy
+    case stressed
+    case proud
     case noResults
     case markdownHint
     case addTagPlaceholder
@@ -126,6 +138,18 @@ enum L10n {
         .tired: "疲惫",
         .sad: "低落",
         .grateful: "感恩",
+        .excited: "激动",
+        .relaxed: "放松",
+        .anxious: "焦虑",
+        .angry: "生气",
+        .bored: "无聊",
+        .focused: "专注",
+        .inspired: "有灵感",
+        .lonely: "孤独",
+        .sick: "不舒服",
+        .sleepy: "困了",
+        .stressed: "压力大",
+        .proud: "自豪",
         .noResults: "没有找到相关日记",
         .markdownHint: "支持 Markdown。图片、语音、位置会以内容抽屉形式加入。",
         .addTagPlaceholder: "标签，用逗号分隔",
@@ -178,6 +202,18 @@ enum L10n {
         .tired: "Tired",
         .sad: "Low",
         .grateful: "Grateful",
+        .excited: "Excited",
+        .relaxed: "Relaxed",
+        .anxious: "Anxious",
+        .angry: "Angry",
+        .bored: "Bored",
+        .focused: "Focused",
+        .inspired: "Inspired",
+        .lonely: "Lonely",
+        .sick: "Sick",
+        .sleepy: "Sleepy",
+        .stressed: "Stressed",
+        .proud: "Proud",
         .noResults: "No matching entries",
         .markdownHint: "Markdown is supported. Photos, audio, and locations will appear as content drawers.",
         .addTagPlaceholder: "Tags, separated by commas",
@@ -191,8 +227,42 @@ enum MoodOption: String, CaseIterable, Identifiable {
     case tired
     case sad
     case grateful
+    case excited
+    case relaxed
+    case anxious
+    case angry
+    case bored
+    case focused
+    case inspired
+    case lonely
+    case sick
+    case sleepy
+    case stressed
+    case proud
 
     var id: String { rawValue }
+
+    var emoji: String {
+        switch self {
+        case .calm: "😌"
+        case .happy: "😊"
+        case .tired: "😮‍💨"
+        case .sad: "😔"
+        case .grateful: "🙏"
+        case .excited: "🤩"
+        case .relaxed: "🌿"
+        case .anxious: "😟"
+        case .angry: "😠"
+        case .bored: "😶"
+        case .focused: "🧠"
+        case .inspired: "💡"
+        case .lonely: "🌙"
+        case .sick: "🤧"
+        case .sleepy: "😴"
+        case .stressed: "😵‍💫"
+        case .proud: "😎"
+        }
+    }
 
     var iconName: String {
         switch self {
@@ -201,6 +271,18 @@ enum MoodOption: String, CaseIterable, Identifiable {
         case .tired: "cloud"
         case .sad: "drop"
         case .grateful: "heart"
+        case .excited: "sparkles"
+        case .relaxed: "leaf"
+        case .anxious: "exclamationmark.circle"
+        case .angry: "flame"
+        case .bored: "ellipsis.bubble"
+        case .focused: "brain.head.profile"
+        case .inspired: "lightbulb"
+        case .lonely: "moon"
+        case .sick: "cross.case"
+        case .sleepy: "bed.double"
+        case .stressed: "bolt.heart"
+        case .proud: "star"
         }
     }
 
@@ -211,6 +293,22 @@ enum MoodOption: String, CaseIterable, Identifiable {
         case .tired: .tired
         case .sad: .sad
         case .grateful: .grateful
+        case .excited: .excited
+        case .relaxed: .relaxed
+        case .anxious: .anxious
+        case .angry: .angry
+        case .bored: .bored
+        case .focused: .focused
+        case .inspired: .inspired
+        case .lonely: .lonely
+        case .sick: .sick
+        case .sleepy: .sleepy
+        case .stressed: .stressed
+        case .proud: .proud
         }
+    }
+
+    func displayName(language: AppLanguage) -> String {
+        "\(emoji) \(L10n.t(l10nKey, language))"
     }
 }

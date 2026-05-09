@@ -1,4 +1,13 @@
+import AVFoundation
+import AVKit
+import MapKit
 import SwiftUI
+
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 enum AppTheme {
     static let background = LinearGradient(
@@ -180,6 +189,569 @@ struct PlaceholderDrawerButton: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(AppTheme.border)
         )
+    }
+}
+
+struct ImageAttachmentGrid: View {
+    let attachments: [DiaryAttachment]
+    var onDelete: ((DiaryAttachment) -> Void)? = nil
+    let language: AppLanguage
+    @State private var selectedIndex = 0
+    @State private var isShowingGallery = false
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 138), spacing: 12)], spacing: 12) {
+            ForEach(Array(attachments.enumerated()), id: \.element.id) { index, attachment in
+                ImageAttachmentTile(
+                    attachment: attachment,
+                    onDelete: onDelete,
+                    onOpen: {
+                        selectedIndex = index
+                        isShowingGallery = true
+                    },
+                    language: language
+                )
+            }
+        }
+        .sheet(isPresented: $isShowingGallery) {
+            FullScreenImageGallery(
+                attachments: attachments,
+                selectedIndex: selectedIndex,
+                language: language
+            )
+        }
+    }
+}
+
+struct AudioAttachmentList: View {
+    let attachments: [DiaryAttachment]
+    var onDelete: ((DiaryAttachment) -> Void)? = nil
+    let language: AppLanguage
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ForEach(attachments) { attachment in
+                AudioAttachmentRow(
+                    attachment: attachment,
+                    onDelete: onDelete,
+                    language: language
+                )
+            }
+        }
+    }
+}
+
+struct VideoAttachmentList: View {
+    let attachments: [DiaryAttachment]
+    var onDelete: ((DiaryAttachment) -> Void)? = nil
+    let language: AppLanguage
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ForEach(attachments) { attachment in
+                VideoAttachmentRow(
+                    attachment: attachment,
+                    onDelete: onDelete,
+                    language: language
+                )
+            }
+        }
+    }
+}
+
+private struct VideoAttachmentRow: View {
+    let attachment: DiaryAttachment
+    var onDelete: ((DiaryAttachment) -> Void)?
+    let language: AppLanguage
+
+    @State private var isShowingPlayer = false
+    @State private var thumbnail: Image?
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Button {
+                isShowingPlayer = true
+            } label: {
+                ZStack {
+                    if let thumbnail {
+                        thumbnail
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        AppTheme.teal.opacity(0.13)
+                        Image(systemName: "video")
+                            .font(.title3)
+                            .foregroundStyle(AppTheme.teal)
+                    }
+
+                    Image(systemName: "play.fill")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
+                        .background(.black.opacity(0.52), in: Circle())
+                }
+                .frame(width: 68, height: 52)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L10n.t(.playVideo, language))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(attachment.displayName)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(AppTheme.textPrimary)
+
+                Text(attachment.createdAt.diaryDateString())
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+
+            Spacer()
+
+            if let onDelete {
+                Button(role: .destructive) {
+                    onDelete(attachment)
+                } label: {
+                    Image(systemName: "trash")
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L10n.t(.removeVideo, language))
+            }
+        }
+        .padding(12)
+        .background(AppTheme.elevatedPanel, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(AppTheme.border)
+        )
+        .sheet(isPresented: $isShowingPlayer) {
+            VideoPlayer(player: AVPlayer(url: AttachmentFileStore.fileURL(for: attachment.localPath)))
+                .ignoresSafeArea()
+        }
+        .onAppear {
+            loadThumbnail()
+        }
+    }
+
+    private func loadThumbnail() {
+        guard thumbnail == nil else { return }
+
+        let url = AttachmentFileStore.fileURL(for: attachment.localPath)
+        DispatchQueue.global(qos: .userInitiated).async {
+            let asset = AVURLAsset(url: url)
+            let generator = AVAssetImageGenerator(asset: asset)
+            generator.appliesPreferredTrackTransform = true
+
+            do {
+                let cgImage = try generator.copyCGImage(
+                    at: CMTime(seconds: 0.25, preferredTimescale: 600),
+                    actualTime: nil
+                )
+                #if canImport(UIKit)
+                let image = Image(uiImage: UIImage(cgImage: cgImage))
+                #elseif canImport(AppKit)
+                let image = Image(nsImage: NSImage(cgImage: cgImage, size: .zero))
+                #endif
+
+                DispatchQueue.main.async {
+                    thumbnail = image
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    thumbnail = nil
+                }
+            }
+        }
+    }
+}
+
+private struct AudioAttachmentRow: View {
+    let attachment: DiaryAttachment
+    var onDelete: ((DiaryAttachment) -> Void)?
+    let language: AppLanguage
+
+    @State private var player: AVAudioPlayer?
+    @State private var isPlaying = false
+    @State private var currentTime: TimeInterval = 0
+    @State private var duration: TimeInterval = 0
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Button {
+                togglePlayback()
+            } label: {
+                Image(systemName: isPlaying ? "stop.fill" : "play.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 34, height: 34)
+                    .background(AppTheme.teal.opacity(0.82), in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L10n.t(.playAudio, language))
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(attachment.displayName)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(AppTheme.textPrimary)
+
+                ProgressView(value: progress)
+                    .progressViewStyle(.linear)
+                    .tint(AppTheme.teal)
+
+                HStack(spacing: 6) {
+                    Text(formatTime(currentTime))
+
+                    Text("/")
+
+                    Text(formatTime(duration))
+
+                    Text("·")
+
+                    Text(attachment.createdAt.diaryDateString())
+                }
+                .font(.caption)
+                .foregroundStyle(AppTheme.textSecondary)
+            }
+
+            Spacer()
+
+            if let onDelete {
+                Button(role: .destructive) {
+                    stopPlayback()
+                    onDelete(attachment)
+                } label: {
+                    Image(systemName: "trash")
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L10n.t(.removeAudio, language))
+            }
+        }
+        .padding(12)
+        .background(AppTheme.elevatedPanel, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(AppTheme.border)
+        )
+        .onAppear {
+            loadDuration()
+        }
+        .onDisappear {
+            stopPlayback()
+        }
+        .onReceive(Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()) { _ in
+            if isPlaying, let player {
+                currentTime = player.currentTime
+                duration = player.duration
+            }
+
+            if isPlaying && player?.isPlaying == false {
+                stopPlayback()
+            }
+        }
+    }
+
+    private func togglePlayback() {
+        if isPlaying {
+            stopPlayback()
+            return
+        }
+
+        do {
+            let player = try AVAudioPlayer(contentsOf: AttachmentFileStore.fileURL(for: attachment.localPath))
+            self.player = player
+            duration = player.duration
+            currentTime = 0
+            player.play()
+            isPlaying = true
+        } catch {
+            isPlaying = false
+        }
+    }
+
+    private func stopPlayback() {
+        player?.stop()
+        player = nil
+        isPlaying = false
+        currentTime = 0
+    }
+
+    private func loadDuration() {
+        guard duration == 0 else { return }
+
+        do {
+            let probe = try AVAudioPlayer(contentsOf: AttachmentFileStore.fileURL(for: attachment.localPath))
+            duration = probe.duration
+        } catch {
+            duration = 0
+        }
+    }
+
+    private var progress: Double {
+        guard duration > 0 else { return 0 }
+        return min(max(currentTime / duration, 0), 1)
+    }
+
+    private func formatTime(_ time: TimeInterval) -> String {
+        guard time.isFinite, time > 0 else { return "0:00" }
+
+        let totalSeconds = Int(time.rounded())
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+}
+
+struct LocationDrawerRow: View {
+    let locationName: String
+    var latitude: Double? = nil
+    var longitude: Double? = nil
+    var onDelete: (() -> Void)? = nil
+    let language: AppLanguage
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Button {
+                openInMaps()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "mappin.and.ellipse")
+                        .foregroundStyle(AppTheme.gold)
+                        .frame(width: 28, height: 28)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(locationName)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .lineLimit(2)
+
+                        HStack(spacing: 6) {
+                            Text(L10n.t(.openInMaps, language))
+
+                            if let coordinateText {
+                                Text("·")
+                                Text(coordinateText)
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "arrow.up.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.textMuted)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L10n.t(.openInMaps, language))
+
+            if let onDelete {
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Image(systemName: "xmark")
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L10n.t(.removeLocation, language))
+            }
+        }
+        .padding(12)
+        .background(AppTheme.elevatedPanel, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(AppTheme.border)
+        )
+    }
+
+    private var coordinateText: String? {
+        guard let latitude, let longitude else { return nil }
+        return String(format: "%.4f, %.4f", latitude, longitude)
+    }
+
+    private func openInMaps() {
+        if let latitude, let longitude {
+            let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+            let placemark = MKPlacemark(coordinate: coordinate)
+            let mapItem = MKMapItem(placemark: placemark)
+            mapItem.name = locationName
+            mapItem.openInMaps(launchOptions: [
+                MKLaunchOptionsMapCenterKey: NSValue(mkCoordinate: coordinate),
+                MKLaunchOptionsMapSpanKey: NSValue(
+                    mkCoordinateSpan: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                )
+            ])
+            return
+        }
+
+        guard let encodedQuery = locationName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "http://maps.apple.com/?q=\(encodedQuery)") else {
+            return
+        }
+
+        #if canImport(UIKit)
+        UIApplication.shared.open(url)
+        #elseif canImport(AppKit)
+        NSWorkspace.shared.open(url)
+        #endif
+    }
+}
+
+private struct ImageAttachmentTile: View {
+    let attachment: DiaryAttachment
+    var onDelete: ((DiaryAttachment) -> Void)?
+    let onOpen: () -> Void
+    let language: AppLanguage
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Button {
+                if localImage != nil {
+                    onOpen()
+                }
+            } label: {
+                Group {
+                    if let image = localImage {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        VStack(spacing: 8) {
+                            Image(systemName: "photo")
+                                .font(.title2)
+                                .foregroundStyle(AppTheme.teal)
+                            Text(attachment.displayName)
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.textSecondary)
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(AppTheme.elevatedPanel)
+                    }
+                }
+                .frame(height: 128)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(AppTheme.border)
+                )
+            }
+            .buttonStyle(.plain)
+
+            if let onDelete {
+                Button(role: .destructive) {
+                    onDelete(attachment)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 26, height: 26)
+                        .background(.black.opacity(0.58), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L10n.t(.removePhoto, language))
+                .padding(8)
+            }
+        }
+    }
+
+    private var localImage: Image? {
+        let url = AttachmentFileStore.fileURL(for: attachment.localPath)
+
+        #if canImport(UIKit)
+        if let image = UIImage(contentsOfFile: url.path) {
+            return Image(uiImage: image)
+        }
+        #elseif canImport(AppKit)
+        if let image = NSImage(contentsOf: url) {
+            return Image(nsImage: image)
+        }
+        #endif
+
+        return nil
+    }
+}
+
+private struct FullScreenImageGallery: View {
+    let attachments: [DiaryAttachment]
+    @State var selectedIndex: Int
+    let language: AppLanguage
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Color.black.ignoresSafeArea()
+
+            TabView(selection: $selectedIndex) {
+                ForEach(Array(attachments.enumerated()), id: \.element.id) { index, attachment in
+                    GalleryImagePage(attachment: attachment)
+                        .tag(index)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: attachments.count > 1 ? .automatic : .never))
+            .ignoresSafeArea()
+
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 42, height: 42)
+                    .background(.white.opacity(0.14), in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L10n.t(.cancel, language))
+            .padding()
+        }
+    }
+}
+
+private struct GalleryImagePage: View {
+    let attachment: DiaryAttachment
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            if let image {
+                image
+                    .resizable()
+                    .scaledToFit()
+                    .padding()
+            } else {
+                Image(systemName: "photo")
+                    .font(.system(size: 42))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+
+            Text(attachment.displayName)
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.75))
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .background(.black.opacity(0.42), in: Capsule())
+                .padding()
+        }
+    }
+
+    private var image: Image? {
+        let url = AttachmentFileStore.fileURL(for: attachment.localPath)
+
+        #if canImport(UIKit)
+        if let image = UIImage(contentsOfFile: url.path) {
+            return Image(uiImage: image)
+        }
+        #elseif canImport(AppKit)
+        if let image = NSImage(contentsOf: url) {
+            return Image(nsImage: image)
+        }
+        #endif
+
+        return nil
     }
 }
 

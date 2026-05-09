@@ -75,18 +75,18 @@ Memory Journal 是一个**本地优先（local-first）**的 iOS 日记应用原
 - 搜索 UI
 - 分类（Library）UI
 - 设置 UI
+- 图片、视频、语音与位置附件
+- 多图浏览、视频缩略图、语音播放进度
+- 单篇 / 全部 PDF 导出
+- Markdown 导出
+- 完整备份与恢复
+- Face ID / Touch ID 隐私锁
+- App 内启动动画
 - 生成的应用图标
 - 生成的 Memories Hero 图
 
 ### 计划功能（Planned Features）
 
-- 图片抽屉支持
-- 语音笔记抽屉
-- 视频附件抽屉
-- 位置抽屉（地图预览）
-- PDF 导出
-- 备份与恢复
-- Face ID / Touch ID 应用锁
 - 更好的 SwiftData Schema 更新迁移处理
 - AI 自动摘要
 - AI 标签与关键词提取
@@ -147,6 +147,8 @@ MemoryJournal/
 │   ├── Support/
 │   ├── Views/
 │   └── Assets.xcassets/
+├── docs/
+│   └── TESTING_CHECKLIST.md
 ├── README.md
 └── .gitignore
 ```
@@ -225,18 +227,18 @@ This prototype currently includes:
 - Search UI
 - Library UI
 - Settings UI
+- Photo, video, audio, and location attachments
+- Multi-photo gallery, video thumbnails, and audio playback progress
+- Single-entry and full PDF export
+- Markdown export
+- Full backup and restore
+- Face ID / Touch ID privacy lock
+- In-app launch animation
 - Generated app icon
 - Generated memories hero image
 
 ### Planned Features
 
-- Image drawer support
-- Audio note drawer
-- Video attachment drawer
-- Location drawer with map preview
-- PDF export
-- Backup and restore
-- Face ID / Touch ID app lock
 - Better migration handling for SwiftData schema updates
 - AI-generated summaries
 - AI tag and keyword extraction
@@ -297,6 +299,8 @@ MemoryJournal/
 │   ├── Support/
 │   ├── Views/
 │   └── Assets.xcassets/
+├── docs/
+│   └── TESTING_CHECKLIST.md
 ├── README.md
 └── .gitignore
 ```

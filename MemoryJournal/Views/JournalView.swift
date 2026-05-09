@@ -169,6 +169,8 @@ struct DiaryDetailView: View {
     let language: AppLanguage
     @State private var isEditing = false
     @State private var showingDeleteConfirmation = false
+    @State private var pdfURL: URL?
+    @State private var exportError: String?
 
     var body: some View {
         AppPageContainer {
@@ -210,23 +212,82 @@ struct DiaryDetailView: View {
                             .frame(maxWidth: .infinity, minHeight: 240, alignment: .topLeading)
                     }
 
+                    if hasContentDrawers {
+                        AppPanel {
+                            VStack(alignment: .leading, spacing: 14) {
+                                if !imageAttachments.isEmpty {
+                                    Text(L10n.t(.photos, language))
+                                        .font(.headline)
+                                        .foregroundStyle(AppTheme.textPrimary)
+
+                                    ImageAttachmentGrid(
+                                        attachments: imageAttachments,
+                                        language: language
+                                    )
+                                }
+
+                                if !audioAttachments.isEmpty {
+                                    Text(L10n.t(.audio, language))
+                                        .font(.headline)
+                                        .foregroundStyle(AppTheme.textPrimary)
+
+                                    AudioAttachmentList(
+                                        attachments: audioAttachments,
+                                        language: language
+                                    )
+                                }
+
+                                if !videoAttachments.isEmpty {
+                                    Text(L10n.t(.video, language))
+                                        .font(.headline)
+                                        .foregroundStyle(AppTheme.textPrimary)
+
+                                    VideoAttachmentList(
+                                        attachments: videoAttachments,
+                                        language: language
+                                    )
+                                }
+
+                                if !entry.locationName.isEmpty {
+                                    Text(L10n.t(.location, language))
+                                        .font(.headline)
+                                        .foregroundStyle(AppTheme.textPrimary)
+
+                                    LocationDrawerRow(
+                                        locationName: entry.locationName,
+                                        latitude: entry.latitude,
+                                        longitude: entry.longitude,
+                                        language: language
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     AppPanel {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 12)], spacing: 12) {
-                            PlaceholderDrawerButton(
-                                title: L10n.t(.photos, language),
-                                systemImage: "photo.on.rectangle",
-                                subtitle: L10n.t(.comingSoon, language)
-                            )
-                            PlaceholderDrawerButton(
-                                title: L10n.t(.audio, language),
-                                systemImage: "waveform",
-                                subtitle: L10n.t(.comingSoon, language)
-                            )
-                            PlaceholderDrawerButton(
-                                title: L10n.t(.location, language),
-                                systemImage: "mappin.and.ellipse",
-                                subtitle: L10n.t(.comingSoon, language)
-                            )
+                        VStack(alignment: .leading, spacing: 10) {
+                            Button {
+                                prepareEntryPDF()
+                            } label: {
+                                Label(L10n.t(.exportEntryPDF, language), systemImage: "doc.richtext")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(AppTheme.sage)
+
+                            if let pdfURL {
+                                ShareLink(item: pdfURL) {
+                                    Label(L10n.t(.shareExport, language), systemImage: "square.and.arrow.up")
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .buttonStyle(.bordered)
+                            }
+
+                            if let exportError {
+                                Text(exportError)
+                                    .font(.caption)
+                                    .foregroundStyle(.red.opacity(0.85))
+                            }
                         }
                     }
                 }
@@ -256,7 +317,7 @@ struct DiaryDetailView: View {
             titleVisibility: .visible
         ) {
             Button(L10n.t(.delete, language), role: .destructive) {
-                modelContext.delete(entry)
+                deleteEntry()
                 dismiss()
             }
             Button(L10n.t(.cancel, language), role: .cancel) {}
@@ -266,5 +327,49 @@ struct DiaryDetailView: View {
                 EditDiaryView(entry: entry, language: language)
             }
         }
+    }
+
+    private func deleteEntry() {
+        entry.attachments.forEach { AttachmentFileStore.deleteFile(at: $0.localPath) }
+        modelContext.delete(entry)
+    }
+
+    private func prepareEntryPDF() {
+        do {
+            pdfURL = try DiaryPDFExporter.export(
+                entries: [entry],
+                language: language,
+                fileStem: "MemoryJournal-Entry"
+            )
+            exportError = nil
+        } catch {
+            pdfURL = nil
+            exportError = L10n.t(.exportFailed, language)
+        }
+    }
+
+    private var imageAttachments: [DiaryAttachment] {
+        entry.attachments
+            .filter { $0.type == .image }
+            .sorted { $0.sortOrder < $1.sortOrder }
+    }
+
+    private var audioAttachments: [DiaryAttachment] {
+        entry.attachments
+            .filter { $0.type == .audio }
+            .sorted { $0.sortOrder < $1.sortOrder }
+    }
+
+    private var videoAttachments: [DiaryAttachment] {
+        entry.attachments
+            .filter { $0.type == .video }
+            .sorted { $0.sortOrder < $1.sortOrder }
+    }
+
+    private var hasContentDrawers: Bool {
+        !imageAttachments.isEmpty
+            || !audioAttachments.isEmpty
+            || !videoAttachments.isEmpty
+            || !entry.locationName.isEmpty
     }
 }

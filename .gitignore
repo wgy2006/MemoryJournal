@@ -3,4 +3,8 @@ xcuserdata/
 *.xcuserdata
 *.xcuserstate
 build/
+*.xcresult
+*.xcarchive
+*.dSYM
+*.ipa
 .DS_Store

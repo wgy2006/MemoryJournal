@@ -47,7 +47,12 @@ enum L10nKey {
     case backup
     case restore
     case exportPDF
+    case exportAllPDF
+    case exportEntryPDF
     case privacyLock
+    case unlockJournal
+    case privacyLockEnabled
+    case privacyLockFailed
     case comingSoon
     case calm
     case happy
@@ -70,6 +75,50 @@ enum L10nKey {
     case markdownHint
     case addTagPlaceholder
     case contentDrawers
+    case addPhoto
+    case removePhoto
+    case addMedia
+    case removeVideo
+    case playVideo
+    case mediaImportFailed
+    case exportMarkdown
+    case shareExport
+    case exportReady
+    case exportFailed
+    case savedLocally
+    case photoImportFailed
+    case fullBackup
+    case createFullBackup
+    case importBackup
+    case backupReady
+    case restoreComplete
+    case restoreFailed
+    case backupPreview
+    case backupContains
+    case confirmRestore
+    case entriesCount
+    case attachmentsCount
+    case newEntriesCount
+    case recordAudio
+    case stopRecording
+    case playAudio
+    case removeAudio
+    case audioImportFailed
+    case chooseLocation
+    case locationName
+    case saveLocation
+    case removeLocation
+    case openInMaps
+    case currentLocation
+    case searchMap
+    case locationSearchPlaceholder
+    case useThisLocation
+    case locationFailed
+    case dateRange
+    case startDate
+    case endDate
+    case allTags
+    case locationFilter
 }
 
 enum L10n {
@@ -131,7 +180,12 @@ enum L10n {
         .backup: "备份",
         .restore: "恢复",
         .exportPDF: "导出 PDF",
+        .exportAllPDF: "导出全部 PDF",
+        .exportEntryPDF: "导出本篇 PDF",
         .privacyLock: "隐私锁",
+        .unlockJournal: "解锁日记",
+        .privacyLockEnabled: "已开启隐私锁",
+        .privacyLockFailed: "解锁失败，请再试一次",
         .comingSoon: "后续加入",
         .calm: "平静",
         .happy: "开心",
@@ -153,7 +207,51 @@ enum L10n {
         .noResults: "没有找到相关日记",
         .markdownHint: "支持 Markdown。图片、语音、位置会以内容抽屉形式加入。",
         .addTagPlaceholder: "标签，用逗号分隔",
-        .contentDrawers: "内容抽屉"
+        .contentDrawers: "内容抽屉",
+        .addPhoto: "添加图片",
+        .removePhoto: "删除图片",
+        .addMedia: "添加图片或视频",
+        .removeVideo: "删除视频",
+        .playVideo: "播放视频",
+        .mediaImportFailed: "媒体导入失败，请换一个文件再试",
+        .exportMarkdown: "导出 Markdown",
+        .shareExport: "分享导出文件",
+        .exportReady: "导出文件已准备好",
+        .exportFailed: "导出失败，请稍后再试",
+        .savedLocally: "已保存在本机",
+        .photoImportFailed: "图片导入失败，请换一张再试",
+        .fullBackup: "完整备份",
+        .createFullBackup: "创建完整备份",
+        .importBackup: "导入备份",
+        .backupReady: "完整备份已准备好",
+        .restoreComplete: "恢复完成",
+        .restoreFailed: "恢复失败，请检查备份文件",
+        .backupPreview: "备份预览",
+        .backupContains: "备份内容",
+        .confirmRestore: "确认恢复",
+        .entriesCount: "日记数",
+        .attachmentsCount: "附件数",
+        .newEntriesCount: "可导入",
+        .recordAudio: "开始录音",
+        .stopRecording: "停止录音",
+        .playAudio: "播放语音",
+        .removeAudio: "删除语音",
+        .audioImportFailed: "录音保存失败，请稍后再试",
+        .chooseLocation: "选择位置",
+        .locationName: "位置名称",
+        .saveLocation: "保存位置",
+        .removeLocation: "移除位置",
+        .openInMaps: "在地图中打开",
+        .currentLocation: "当前位置",
+        .searchMap: "从地图中搜索",
+        .locationSearchPlaceholder: "搜索地点、店名或地址",
+        .useThisLocation: "使用这个位置",
+        .locationFailed: "位置获取失败，请检查权限或换关键词",
+        .dateRange: "日期范围",
+        .startDate: "开始日期",
+        .endDate: "结束日期",
+        .allTags: "全部标签",
+        .locationFilter: "地点筛选"
     ]
 
     private static let english: [L10nKey: String] = [
@@ -195,7 +293,12 @@ enum L10n {
         .backup: "Backup",
         .restore: "Restore",
         .exportPDF: "Export PDF",
+        .exportAllPDF: "Export All PDF",
+        .exportEntryPDF: "Export Entry PDF",
         .privacyLock: "Privacy Lock",
+        .unlockJournal: "Unlock Journal",
+        .privacyLockEnabled: "Privacy lock enabled",
+        .privacyLockFailed: "Unlock failed. Please try again.",
         .comingSoon: "Coming soon",
         .calm: "Calm",
         .happy: "Happy",
@@ -217,7 +320,51 @@ enum L10n {
         .noResults: "No matching entries",
         .markdownHint: "Markdown is supported. Photos, audio, and locations will appear as content drawers.",
         .addTagPlaceholder: "Tags, separated by commas",
-        .contentDrawers: "Content Drawers"
+        .contentDrawers: "Content Drawers",
+        .addPhoto: "Add Photos",
+        .removePhoto: "Remove Photo",
+        .addMedia: "Add Photos or Videos",
+        .removeVideo: "Remove Video",
+        .playVideo: "Play Video",
+        .mediaImportFailed: "Media import failed. Please try another file.",
+        .exportMarkdown: "Export Markdown",
+        .shareExport: "Share Export",
+        .exportReady: "Export file is ready",
+        .exportFailed: "Export failed. Please try again.",
+        .savedLocally: "Saved locally",
+        .photoImportFailed: "Photo import failed. Please try another image.",
+        .fullBackup: "Full Backup",
+        .createFullBackup: "Create Full Backup",
+        .importBackup: "Import Backup",
+        .backupReady: "Full backup is ready",
+        .restoreComplete: "Restore complete",
+        .restoreFailed: "Restore failed. Please check the backup file.",
+        .backupPreview: "Backup Preview",
+        .backupContains: "Backup Contains",
+        .confirmRestore: "Confirm Restore",
+        .entriesCount: "Entries",
+        .attachmentsCount: "Attachments",
+        .newEntriesCount: "New Entries",
+        .recordAudio: "Record Audio",
+        .stopRecording: "Stop Recording",
+        .playAudio: "Play Audio",
+        .removeAudio: "Remove Audio",
+        .audioImportFailed: "Audio could not be saved. Please try again.",
+        .chooseLocation: "Choose Location",
+        .locationName: "Location Name",
+        .saveLocation: "Save Location",
+        .removeLocation: "Remove Location",
+        .openInMaps: "Open in Maps",
+        .currentLocation: "Current Location",
+        .searchMap: "Search on Map",
+        .locationSearchPlaceholder: "Search a place, venue, or address",
+        .useThisLocation: "Use This Location",
+        .locationFailed: "Could not get that location. Check permission or try another keyword.",
+        .dateRange: "Date Range",
+        .startDate: "Start Date",
+        .endDate: "End Date",
+        .allTags: "All Tags",
+        .locationFilter: "Location Filter"
     ]
 }
 
